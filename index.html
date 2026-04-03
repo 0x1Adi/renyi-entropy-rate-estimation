@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Scale Collision Counting for Rényi Entropy Rate Estimation</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Icons are inline SVGs - no external icon font needed -->
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fafaf8;
+  --text: #1a1a1a;
+  --muted: #5c5c5c;
+  --accent: #1a56db;
+  --accent-light: #e8eefb;
+  --border: #e0ddd8;
+  --card-bg: #ffffff;
+  --code-bg: #f3f0eb;
+  --green: #0f7b3f;
+  --red: #c0392b;
+  --orange: #d4760a;
+  --serif: 'Source Serif 4', Georgia, serif;
+  --sans: 'Source Sans 3', -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--sans);
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.7;
+  font-size: 16px;
+}
+
+/* ---- NAV ---- */
+.site-nav {
+  background: rgba(250,250,248,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+}
+.site-nav a { color: var(--muted); font-size: 0.88rem; font-weight: 500; text-decoration: none; transition: color .15s; }
+.site-nav a:hover { color: var(--accent); }
+
+/* ---- HERO ---- */
+.hero {
+  padding: 5rem 0 3.5rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+.hero h1 {
+  font-family: var(--serif);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  max-width: 700px;
+  margin: 0 auto 1rem;
+}
+.hero .authors { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; }
+.hero .authors a { color: var(--accent); text-decoration: none; }
+.badge-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--card-bg); border: 1px solid var(--border);
+  padding: 8px 18px; border-radius: 8px; font-size: 0.85rem;
+  color: var(--text); text-decoration: none;
+  font-weight: 500; transition: all .15s;
+}
+.badge-link:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.badge-link i { font-size: 1.1rem; }
+
+/* ---- SECTIONS ---- */
+section { padding: 4rem 0; }
+section + section { border-top: 1px solid var(--border); }
+.section-label {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+h2 {
+  font-family: var(--serif);
+  font-size: 1.65rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.01em;
+}
+h3 {
+  font-family: var(--serif);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* ---- TLDR CARD ---- */
+.tldr-card {
+  background: var(--accent-light);
+  border: 1px solid #c7d5f0;
+  border-radius: 12px;
+  padding: 2rem 2.2rem;
+  margin-bottom: 2rem;
+}
+.tldr-card h3 { color: var(--accent); font-family: var(--mono); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.06em; margin-bottom: 1rem; }
+.tldr-card p { font-size: 1.05rem; line-height: 1.65; margin: 0; }
+.tldr-card strong { font-weight: 600; }
+
+/* ---- CONCEPT BOX ---- */
+.concept-box {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.8rem;
+  margin-bottom: 1.5rem;
+  transition: box-shadow .2s;
+}
+.concept-box:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+.concept-box .num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  font-family: var(--mono); font-size: 0.78rem; font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+/* ---- PIPELINE ---- */
+.pipeline {
+  display: flex; align-items: stretch; gap: 0;
+  overflow-x: auto; padding: 1rem 0;
+}
+.pipe-step {
+  flex: 1; min-width: 140px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.2rem 1rem;
+  text-align: center;
+  position: relative;
+}
+.pipe-step:not(:last-child)::after {
+  content: '→';
+  position: absolute; right: -16px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.3rem; color: var(--muted);
+  z-index: 2;
+}
+.pipe-step .step-num {
+  font-family: var(--mono); font-size: 0.7rem;
+  color: var(--accent); font-weight: 600; margin-bottom: 4px;
+}
+.pipe-step .step-title { font-weight: 600; font-size: 0.88rem; margin-bottom: 4px; }
+.pipe-step .step-detail { font-size: 0.78rem; color: var(--muted); }
+
+/* ---- FORMULA ---- */
+.formula-block {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.2rem 1.5rem;
+  font-family: var(--mono);
+  font-size: 0.92rem;
+  text-align: center;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+}
+
+/* ---- COMPARISON TABLE ---- */
+.result-table { font-size: 0.9rem; }
+.result-table th { font-family: var(--mono); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border-bottom: 2px solid var(--border); }
+.result-table td { vertical-align: middle; border-color: var(--border); }
+.result-table .winner { background: #edf7ed; font-weight: 600; }
+.ari-bar {
+  height: 8px; border-radius: 4px;
+  background: var(--border);
+  position: relative;
+  min-width: 120px;
+}
+.ari-bar .fill {
+  position: absolute; left: 0; top: 0; height: 100%;
+  border-radius: 4px;
+  transition: width 1s ease;
+}
+.fill-renyi { background: var(--accent); }
+.fill-shannon { background: var(--orange); }
+
+/* ---- INTERACTIVE DEMO ---- */
+.demo-area {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+}
+.demo-input {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
+  resize: vertical;
+}
+.demo-output {
+  background: var(--code-bg);
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  min-height: 60px;
+  margin-top: 1rem;
+}
+.btn-compute {
+  background: var(--accent); color: #fff;
+  border: none; padding: 8px 20px;
+  border-radius: 8px; font-size: 0.85rem;
+  font-weight: 600; cursor: pointer;
+  transition: background .15s;
+  margin-top: 0.75rem;
+}
+.btn-compute:hover { background: #143faa; }
+
+/* ---- INTUITION VISUAL ---- */
+.bar-chart-mini {
+  display: flex; align-items: flex-end; gap: 3px;
+  height: 80px; padding: 4px 0;
+}
+.bar-chart-mini .bar {
+  flex: 1; border-radius: 3px 3px 0 0;
+  min-width: 6px; transition: height 0.6s ease;
+}
+
+/* ---- FOOTER ---- */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 2rem 0;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+footer a { color: var(--accent); text-decoration: none; }
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 768px) {
+  .pipeline { flex-direction: column; gap: 1rem; }
+  .pipe-step:not(:last-child)::after { content: '↓'; right: 50%; top: auto; bottom: -18px; transform: translateX(50%); }
+  section { padding: 2.5rem 0; }
+}
+
+/* ---- ANIMATIONS ---- */
+.fade-in { opacity: 0; transform: translateY(12px); transition: opacity 0.5s, transform 0.5s; }
+.fade-in.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="site-nav py-2">
+  <div class="container d-flex justify-content-between align-items-center">
+    <span style="font-family:var(--mono);font-size:0.82rem;font-weight:600;color:var(--text);">Rényi Entropy Rate</span>
+    <div class="d-flex gap-3">
+      <a href="#intuition">Intuition</a>
+      <a href="#method">Method</a>
+      <a href="#results">Results</a>
+      <a href="#demo">Demo</a>
+      <a href="https://github.com/0x1Adi/renyi-entropy-rate-estimation" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="container">
+    <h1>Multi-Scale Collision Counting for Rényi Entropy Rate Estimation</h1>
+    <p class="authors">
+      <a href="https://orcid.org/0009-0004-8454-9777" target="_blank">Aditya Tiwari</a> · Independent Researcher, Goa, India
+    </p>
+    <div class="d-flex justify-content-center gap-3 flex-wrap">
+      <a class="badge-link" href="https://github.com/0x1Adi/renyi-entropy-rate-estimation" target="_blank">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg> Code
+      </a>
+      <a class="badge-link" href="https://github.com/0x1Adi/renyi-entropy-rate-estimation/blob/main/paper/paper.pdf" target="_blank">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/><path d="M4.603 14.087a.8.8 0 0 1-.438-.42c-.195-.388-.13-.776.08-1.102.198-.307.526-.568.897-.787a7.7 7.7 0 0 1 1.482-.645 20 20 0 0 0 1.062-2.227 7.3 7.3 0 0 1-.43-1.295c-.086-.4-.119-.796-.046-1.136.075-.354.274-.672.65-.823.192-.077.4-.12.602-.077a.7.7 0 0 1 .477.365c.088.164.12.356.127.538.007.188-.012.396-.047.614-.084.51-.27 1.134-.52 1.794a11 11 0 0 0 .98 1.686 5.8 5.8 0 0 1 1.334.05c.364.066.734.195.96.465.12.144.193.32.2.518.007.192-.047.382-.138.563a1.04 1.04 0 0 1-.354.416.86.86 0 0 1-.51.138c-.331-.014-.654-.196-.933-.417a6.1 6.1 0 0 1-.911-.95 11.7 11.7 0 0 0-1.997.406 11.3 11.3 0 0 1-1.02 1.51c-.292.35-.609.656-.927.787a.8.8 0 0 1-.58.029z"/></svg> Paper
+      </a>
+      <a class="badge-link" href="https://github.com/ggyggy666/DNS-Tunnel-Datasets" target="_blank">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.318 2.687C5.234 2.271 6.536 2 8 2s2.766.27 3.682.687C12.644 3.125 13 3.627 13 4c0 .374-.356.875-1.318 1.313C10.766 5.729 9.464 6 8 6s-2.766-.27-3.682-.687C3.356 4.875 3 4.373 3 4c0-.374.356-.875 1.318-1.313M13 5.698V7c0 .374-.356.875-1.318 1.313C10.766 8.729 9.464 9 8 9s-2.766-.27-3.682-.687C3.356 7.875 3 7.373 3 7V5.698c.271.202.58.378.904.525C4.978 6.711 6.427 7 8 7s3.022-.289 4.096-.777A5 5 0 0 0 13 5.698M14 4c0-1.007-.875-1.755-1.904-2.223C11.022 1.289 9.573 1 8 1s-3.022.289-4.096.777C2.875 2.245 2 2.993 2 4v9c0 1.007.875 1.755 1.904 2.223C4.978 15.71 6.427 16 8 16s3.022-.289 4.096-.777C13.125 14.755 14 14.007 14 13zm-1 4.698V10c0 .374-.356.875-1.318 1.313C10.766 11.729 9.464 12 8 12s-2.766-.27-3.682-.687C3.356 10.875 3 10.373 3 10V8.698c.271.202.58.378.904.525C4.978 9.71 6.427 10 8 10s3.022-.289 4.096-.777A5 5 0 0 0 13 8.698m0 3V13c0 .374-.356.875-1.318 1.313C10.766 14.729 9.464 15 8 15s-2.766-.27-3.682-.687C3.356 13.875 3 13.373 3 13v-1.302c.271.202.58.378.904.525C4.978 12.71 6.427 13 8 13s3.022-.289 4.096-.777c.324-.147.633-.323.904-.525"/></svg> Dataset
+      </a>
+      <a class="badge-link" href="#demo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="M6.271 5.055a.5.5 0 0 1 .52.038l3.5 2.5a.5.5 0 0 1 0 .814l-3.5 2.5A.5.5 0 0 1 6 10.5v-5a.5.5 0 0 1 .271-.445"/></svg> Try It
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- TLDR -->
+<section>
+  <div class="container" style="max-width:780px;">
+    <div class="tldr-card fade-in">
+      <h3>TL;DR</h3>
+      <p>
+        We measure how <strong>"patterned"</strong> a byte stream is using <strong>Rényi collision entropy</strong> instead of Shannon entropy. By looking at collision rates at multiple scales (1-gram, 2-gram, 3-gram…) and fitting a line, we get an <strong>entropy rate</strong> that is dramatically better at telling DNS tunnel tools apart — <strong>ARI = 0.720</strong> vs Shannon's 0.204 — with zero machine learning. Just count, fit, classify.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- INTUITION -->
+<section id="intuition">
+  <div class="container" style="max-width:780px;">
+    <div class="section-label">Background</div>
+    <h2>Two Ways to Measure Randomness</h2>
+
+    <p>Given a stream of data, we want a single number that captures "how random is this?" There are two classic approaches, and they <em>weight the same probabilities differently</em>.</p>
+
+    <div class="row g-4 mt-2 mb-4">
+      <div class="col-md-6">
+        <div class="concept-box">
+          <div class="num">H₁</div>
+          <h3>Shannon Entropy</h3>
+          <div class="formula-block" style="font-size:0.85rem;">H₁ = −Σ pᵢ log₂ pᵢ</div>
+          <p style="font-size:0.9rem;color:var(--muted);">
+            Weights each symbol by <code>−p log p</code>. This function peaks near <code>p ≈ 0.37</code>, so <strong>medium-probability events dominate</strong>. Great for compression, but dilutes the signal from common patterns.
+          </p>
+          <div class="bar-chart-mini" id="shannon-bars"></div>
+          <div style="font-size:0.75rem;color:var(--muted);text-align:center;">Weight: −p log p</div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="concept-box">
+          <div class="num" style="background:var(--accent);">F₂</div>
+          <h3>Rényi Collision Entropy</h3>
+          <div class="formula-block" style="font-size:0.85rem;">H₂ = −log₂(Σ pᵢ²)</div>
+          <p style="font-size:0.9rem;color:var(--muted);">
+            Weights each symbol by <code>p²</code>. High-probability symbols dominate <strong>quadratically</strong>. This amplifies exactly the peaked patterns that encoding tools (base32, base64, hex) create.
+          </p>
+          <div class="bar-chart-mini" id="renyi-bars"></div>
+          <div style="font-size:0.75rem;color:var(--muted);text-align:center;">Weight: p²</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="concept-box fade-in">
+      <h3>Why does this matter for security?</h3>
+      <p style="font-size:0.92rem;">
+        DNS tunneling tools (iodine, dnscat2, dns2tcp…) encode arbitrary data into DNS query names using base32/base64/hex. Each encoding creates a <strong>distinctive nibble transition pattern</strong> — a few k-grams appear far more often than others.
+      </p>
+      <p style="font-size:0.92rem;margin:0;">
+        Shannon entropy spreads its attention uniformly. Rényi's <code>p²</code> weighting <strong>amplifies these peaks</strong>, making each tool's encoding signature stand out. The multi-scale slope then captures how these peaks evolve across 1-grams → 2-grams → 3-grams, giving us a per-tool fingerprint.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- METHOD -->
+<section id="method">
+  <div class="container" style="max-width:780px;">
+    <div class="section-label">Method</div>
+    <h2>Five-Step Pipeline</h2>
+
+    <div class="pipeline fade-in">
+      <div class="pipe-step">
+        <div class="step-num">01</div>
+        <div class="step-title">Expand</div>
+        <div class="step-detail">Bytes → nibbles<br>(α = 16)</div>
+      </div>
+      <div class="pipe-step">
+        <div class="step-num">02</div>
+        <div class="step-title">Count</div>
+        <div class="step-detail">k-grams for<br>k = 1, 2, …, K</div>
+      </div>
+      <div class="pipe-step">
+        <div class="step-num">03</div>
+        <div class="step-title">Debias</div>
+        <div class="step-detail">Falling factorial<br>F̂₂ = Σcᵢ⁽²⁾/n⁽²⁾</div>
+      </div>
+      <div class="pipe-step">
+        <div class="step-num">04</div>
+        <div class="step-title">Fit</div>
+        <div class="step-detail">OLS slope of<br>log F̂₂(k) vs k</div>
+      </div>
+      <div class="pipe-step">
+        <div class="step-num">05</div>
+        <div class="step-title">Extract</div>
+        <div class="step-detail">h₂ = −slope / ln 2</div>
+      </div>
+    </div>
+
+    <div class="row g-4 mt-3">
+      <div class="col-md-6">
+        <div class="concept-box fade-in">
+          <h3>Why nibbles?</h3>
+          <p style="font-size:0.9rem;">
+            At byte level (α=256), you need >65K samples just for 2-gram statistics to converge. At nibble level (α=16), 2-grams need only 256 bins and 3-grams need 4,096 — feasible from just 5KB of data.
+          </p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="concept-box fade-in">
+          <h3>Why multi-scale?</h3>
+          <p style="font-size:0.9rem;">
+            Single-scale Rényi at byte level scores <strong>ARI = 0.124</strong> (worse than Shannon!). The slope across scales is what captures sequential structure. Without multi-scale: no advantage.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="concept-box fade-in mt-3">
+      <h3>The math behind the slope</h3>
+      <p style="font-size:0.92rem;">
+        For a Markov chain with transition matrix <strong>P</strong>, define <strong>M₂</strong> by squaring each entry: (M₂)ᵢⱼ = Pᵢⱼ². The k-gram collision probability is:
+      </p>
+      <div class="formula-block">F₂(k) = v⊤ · M₂ᵏ⁻¹ · 𝟏 &nbsp;&nbsp; where vᵢ = πᵢ²</div>
+      <p style="font-size:0.92rem;">
+        By the Perron–Frobenius theorem, log F₂(k) becomes linear in k for large k, with slope = log ρ(M₂). So a simple OLS regression gives us the entropy rate: <strong>h₂ = −slope / ln 2</strong>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section id="results" style="background:#f5f4f0;">
+  <div class="container" style="max-width:780px;">
+    <div class="section-label">Results</div>
+    <h2>9-Method Ablation on 124 DNS Pcaps</h2>
+
+    <p>Every method uses the same data, same pcap parsing, same leave-one-out nearest-centroid classifier. The <em>only</em> variable is the entropy measure.</p>
+
+    <div class="table-responsive mt-3 fade-in">
+      <table class="table result-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Method</th>
+            <th>α</th>
+            <th>Dim</th>
+            <th>ARI</th>
+            <th style="min-width:130px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Shannon H₁ (byte)</td>
+            <td>256</td>
+            <td>1D</td>
+            <td>0.246</td>
+            <td><div class="ari-bar"><div class="fill fill-shannon" style="width:24.6%"></div></div></td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Rényi H₂ byte (single-scale)</td>
+            <td>256</td>
+            <td>1D</td>
+            <td>0.124</td>
+            <td><div class="ari-bar"><div class="fill fill-renyi" style="width:12.4%"></div></div></td>
+          </tr>
+          <tr>
+            <td>3a</td>
+            <td>Shannon rate (plug-in)</td>
+            <td>16</td>
+            <td>1D</td>
+            <td>0.204</td>
+            <td><div class="ari-bar"><div class="fill fill-shannon" style="width:20.4%"></div></div></td>
+          </tr>
+          <tr>
+            <td>3b</td>
+            <td>Shannon rate (Miller-Madow)</td>
+            <td>16</td>
+            <td>1D</td>
+            <td>0.204</td>
+            <td><div class="ari-bar"><div class="fill fill-shannon" style="width:20.4%"></div></div></td>
+          </tr>
+          <tr class="winner">
+            <td><strong>4</strong></td>
+            <td><strong>Rényi h₂ (nibble slope)</strong></td>
+            <td><strong>16</strong></td>
+            <td><strong>1D</strong></td>
+            <td><strong>0.720</strong></td>
+            <td><div class="ari-bar"><div class="fill fill-renyi" style="width:72.0%"></div></div></td>
+          </tr>
+          <tr class="winner">
+            <td><strong>5</strong></td>
+            <td><strong>Rényi (h₂,h₃,h₄) slope</strong></td>
+            <td><strong>16</strong></td>
+            <td><strong>3D</strong></td>
+            <td><strong>0.747</strong></td>
+            <td><div class="ari-bar"><div class="fill fill-renyi" style="width:74.7%"></div></div></td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Shannon 3D (nibble)</td>
+            <td>16</td>
+            <td>3D</td>
+            <td>0.460</td>
+            <td><div class="ari-bar"><div class="fill fill-shannon" style="width:46.0%"></div></div></td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Rényi (H₂,H₃,H₄) byte single</td>
+            <td>256</td>
+            <td>3D</td>
+            <td>0.336</td>
+            <td><div class="ari-bar"><div class="fill fill-renyi" style="width:33.6%"></div></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="row g-4 mt-3">
+      <div class="col-md-4">
+        <div class="concept-box text-center fade-in">
+          <div style="font-size:2.2rem;font-weight:700;color:var(--accent);font-family:var(--mono);">0.720</div>
+          <div style="font-size:0.85rem;color:var(--muted);">Rényi h₂ ARI<br>(1D, no ML)</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="concept-box text-center fade-in">
+          <div style="font-size:2.2rem;font-weight:700;color:var(--orange);font-family:var(--mono);">0.204</div>
+          <div style="font-size:0.85rem;color:var(--muted);">Shannon rate ARI<br>(same conditions)</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="concept-box text-center fade-in">
+          <div style="font-size:2.2rem;font-weight:700;color:var(--green);font-family:var(--mono);">ΔARI = 0.516</div>
+          <div style="font-size:0.85rem;color:var(--muted);">Intrinsic to collision<br>functional, not bias</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="concept-box fade-in mt-4">
+      <h3>Key takeaways</h3>
+      <ul style="font-size:0.92rem;padding-left:1.2rem;">
+        <li><strong>Single-scale Rényi is worse than Shannon</strong> (row 2 vs 1). The multi-scale slope is what unlocks the advantage.</li>
+        <li><strong>Debiasing doesn't explain the gap</strong> (rows 3a = 3b). Miller-Madow correction changes nothing for Shannon.</li>
+        <li><strong>Adding h₃, h₄ helps modestly</strong> (+0.027 ARI). The main signal is in h₂ alone.</li>
+        <li><strong>No model training required.</strong> Just reference centroids from labeled examples — nearest-centroid classification.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- R² DIAGNOSTIC -->
+<section>
+  <div class="container" style="max-width:780px;">
+    <div class="section-label">Bonus Result</div>
+    <h2>R² as Memory Depth Diagnostic</h2>
+    <p>The goodness-of-fit (R²) of the log F̂₂(k) linear regression decreases with the Markov order of the source. Higher-order sources have more complex eigenvalue structure, creating curvature in the log-linear plot.</p>
+
+    <div class="demo-area fade-in">
+      <div class="d-flex align-items-end gap-2" style="height:180px;" id="r2-chart">
+        <!-- Filled by JS -->
+      </div>
+      <div class="d-flex justify-content-between mt-1" style="font-size:0.72rem;color:var(--muted);font-family:var(--mono);">
+        <span>Order 0</span><span>Order 1</span><span>Order 2</span><span>Order 3</span><span>Order 4</span><span>Order 5</span>
+      </div>
+      <p style="font-size:0.85rem;color:var(--muted);margin-top:1rem;margin-bottom:0;">
+        R² values: 0.99999980, 0.99999950, 0.99994770, 0.99984760, 0.99975050, 0.99979200 (uptick at order 5 due to k<sub>max</sub> truncation).
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- INTERACTIVE DEMO -->
+<section id="demo" style="background:#f5f4f0;">
+  <div class="container" style="max-width:780px;">
+    <div class="section-label">Interactive</div>
+    <h2>Try It Yourself</h2>
+    <p>Type or paste text below. The estimator expands to nibbles and computes collision entropy at each k-gram order.</p>
+
+    <div class="demo-area fade-in">
+      <label style="font-size:0.85rem;font-weight:600;margin-bottom:6px;display:block;">Input text (converted to bytes)</label>
+      <textarea class="demo-input" id="demo-text" rows="3" placeholder="Type something... or click an example below">The quick brown fox jumps over the lazy dog</textarea>
+      <div class="d-flex gap-2 mt-2 flex-wrap">
+        <button class="btn-compute" onclick="computeDemo()">Compute</button>
+        <button class="btn-compute" style="background:var(--muted);" onclick="loadExample('english')">English text</button>
+        <button class="btn-compute" style="background:var(--muted);" onclick="loadExample('base64')">Base64 data</button>
+        <button class="btn-compute" style="background:var(--muted);" onclick="loadExample('hex')">Hex encoded</button>
+        <button class="btn-compute" style="background:var(--muted);" onclick="loadExample('random')">Random bytes</button>
+      </div>
+      <div class="demo-output" id="demo-result">
+        <span style="color:var(--muted);">Click "Compute" to see results…</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUICK START -->
+<section id="code">
+  <div class="container" style="max-width:780px;">
+    <div class="section-label">Get Started</div>
+    <h2>Use in Your Project</h2>
+
+    <div class="formula-block" style="text-align:left;font-size:0.82rem;line-height:1.8;">
+      <span style="color:var(--muted);"># Install</span><br>
+      git clone https://github.com/0x1Adi/renyi-entropy-rate-estimation.git<br>
+      pip install numpy<br><br>
+      <span style="color:var(--muted);"># Estimate entropy rate from any byte stream</span><br>
+      <span style="color:var(--accent);">from</span> fq_core <span style="color:var(--accent);">import</span> multiscale_fq<br><br>
+      <span style="color:var(--accent);">with</span> open(<span style="color:var(--green);">'capture.pcap'</span>, <span style="color:var(--green);">'rb'</span>) <span style="color:var(--accent);">as</span> f:<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;data = f.read()<br><br>
+      result = multiscale_fq(data, alpha=<span style="color:var(--orange);">16</span>, q_list=(<span style="color:var(--orange);">2</span>, <span style="color:var(--orange);">3</span>, <span style="color:var(--orange);">4</span>))<br>
+      print(f<span style="color:var(--green);">"h₂ = {result['h_q'][2]:.4f}, R² = {result['R2']:.6f}"</span>)
+    </div>
+
+    <div class="row g-4 mt-3">
+      <div class="col-md-6">
+        <div class="concept-box fade-in">
+          <h3><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5V6a.5.5 0 0 1-1 0V4.5A.5.5 0 0 1 8 4M3.732 5.732a.5.5 0 0 1 .707 0l.915.914a.5.5 0 1 1-.708.708l-.914-.915a.5.5 0 0 1 0-.707M2 10a.5.5 0 0 1 .5-.5h1.586a.5.5 0 0 1 0 1H2.5A.5.5 0 0 1 2 10m9.5 0a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H12a.5.5 0 0 1-.5-.5m.754-4.246a.39.39 0 0 0-.527-.02L7.547 9.31a.91.91 0 1 0 1.302 1.258l3.434-4.297a.39.39 0 0 0-.029-.518z"/><path fill-rule="evenodd" d="M0 10a8 8 0 1 1 15.547 2.661c-.442 1.253-1.845 1.602-2.932 1.25C11.309 13.488 9.475 13 8 13c-1.474 0-3.31.488-4.615.911-1.087.352-2.49.003-2.932-1.25A8 8 0 0 1 0 10m8-7a7 7 0 0 0-6.603 9.329c.203.575.923.876 1.68.63C4.397 12.533 6.358 12 8 12s3.604.532 4.923.96c.757.245 1.477-.056 1.68-.631A7 7 0 0 0 8 3"/></svg> Performance</h3>
+          <p style="font-size:0.88rem;">O(nK) time, O(α<sup>K</sup>) space. Processes 50KB in ~1ms. No GPU, no training, no dependencies beyond NumPy.</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="concept-box fade-in">
+          <h3><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="m10.97 4.97-.02.022-3.473 4.425-2.093-2.094a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05"/></svg> Validated</h3>
+          <p style="font-size:0.88rem;">Median error &lt;0.003 on synthetic Markov chains. R² &gt; 0.999. 33 unit + integration tests. Independent standalone verifier.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CITATION -->
+<section style="background:#f5f4f0;">
+  <div class="container" style="max-width:780px;">
+    <div class="section-label">Citation</div>
+    <h2>Reference</h2>
+    <div class="formula-block" style="text-align:left;font-size:0.8rem;line-height:1.7;">
+@article{tiwari2026multiscale,<br>
+&nbsp;&nbsp;author&nbsp;&nbsp;= {Tiwari, Aditya},<br>
+&nbsp;&nbsp;title&nbsp;&nbsp;&nbsp;= {Multi-Scale Collision Counting for {R}\'enyi Entropy Rate Estimation},<br>
+&nbsp;&nbsp;year&nbsp;&nbsp;&nbsp;&nbsp;= {2026},<br>
+&nbsp;&nbsp;url&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= {https://github.com/0x1Adi/renyi-entropy-rate-estimation}<br>
+}
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://github.com/0x1Adi/renyi-entropy-rate-estimation" target="_blank">GitHub</a> ·
+      <a href="https://orcid.org/0009-0004-8454-9777" target="_blank">ORCID</a> ·
+      MIT License · 2026
+    </p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// === SCROLL FADE-IN ===
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.15 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// === INTUITION BAR CHARTS ===
+function drawBars() {
+  const probs = [0.25, 0.20, 0.15, 0.12, 0.08, 0.06, 0.05, 0.04, 0.03, 0.02];
+  const shannonW = probs.map(p => -p * Math.log2(p));
+  const renyiW = probs.map(p => p * p);
+  const maxS = Math.max(...shannonW), maxR = Math.max(...renyiW);
+
+  const sC = document.getElementById('shannon-bars');
+  const rC = document.getElementById('renyi-bars');
+  sC.innerHTML = ''; rC.innerHTML = '';
+
+  shannonW.forEach((w, i) => {
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    bar.style.height = (w / maxS * 100) + '%';
+    bar.style.background = `hsl(30, ${60 + i * 4}%, ${50 + i * 3}%)`;
+    bar.title = `p=${probs[i]}, weight=${w.toFixed(4)}`;
+    sC.appendChild(bar);
+  });
+  renyiW.forEach((w, i) => {
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    bar.style.height = (w / maxR * 100) + '%';
+    bar.style.background = `hsl(220, ${60 + i * 4}%, ${40 + i * 4}%)`;
+    bar.title = `p=${probs[i]}, weight=${w.toFixed(4)}`;
+    rC.appendChild(bar);
+  });
+}
+drawBars();
+
+// === R² CHART ===
+(function() {
+  const r2 = [0.99999980, 0.99999950, 0.99994770, 0.99984760, 0.99975050, 0.99979200];
+  const minR = Math.min(...r2);
+  const maxR = Math.max(...r2);
+  const chart = document.getElementById('r2-chart');
+  r2.forEach((v, i) => {
+    const pct = ((v - minR) / (maxR - minR)) * 80 + 20;
+    const bar = document.createElement('div');
+    bar.style.cssText = `flex:1;background:${i===4?'var(--green)':i===5?'var(--orange)':'var(--accent)'};border-radius:6px 6px 0 0;height:${pct}%;transition:height 1s;`;
+    bar.title = `Order ${i}: R²=${v.toFixed(7)}`;
+    const label = document.createElement('div');
+    label.style.cssText = 'font-size:0.68rem;font-family:var(--mono);text-align:center;color:var(--muted);margin-top:4px;';
+    label.textContent = (1 - v).toExponential(1);
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;height:100%;';
+    wrap.appendChild(bar);
+    wrap.appendChild(label);
+    chart.appendChild(wrap);
+  });
+})();
+
+// === INTERACTIVE DEMO ===
+const examples = {
+  english: "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump.",
+  base64: "SGVsbG8gV29ybGQhIFRoaXMgaXMgYmFzZTY0IGVuY29kZWQgZGF0YS4gSXQgaGFzIGEgdmVyeSBkaXN0aW5jdGl2ZSBuaWJibGUgcGF0dGVybi4gQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=",
+  hex: "48656c6c6f20576f726c64212054686973206973206865782d656e636f6465642064617461207769746820612076657279207370656369666963206e6962626c6520706174746572",
+  random: Array.from({length: 200}, () => String.fromCharCode(Math.floor(Math.random() * 256))).join('')
+};
+
+function loadExample(name) {
+  document.getElementById('demo-text').value = examples[name];
+  computeDemo();
+}
+
+function computeDemo() {
+  const text = document.getElementById('demo-text').value;
+  if (!text) { document.getElementById('demo-result').innerHTML = '<span style="color:var(--muted);">Enter some text first.</span>'; return; }
+
+  // Convert to bytes
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(text);
+
+  // Expand to nibbles
+  const nibbles = [];
+  bytes.forEach(b => { nibbles.push(b >> 4); nibbles.push(b & 0x0F); });
+  const n = nibbles.length;
+
+  // Count k-grams and compute debiased F₂
+  const results = [];
+  for (let k = 1; k <= 3; k++) {
+    const d = Math.pow(16, k);
+    const nk = n - k + 1;
+    if (nk < 3 || d / nk > 0.5) break;
+
+    const counts = new Float64Array(d);
+    for (let i = 0; i <= n - k; i++) {
+      let idx = 0;
+      for (let j = 0; j < k; j++) idx = idx * 16 + nibbles[i + j];
+      counts[idx]++;
+    }
+
+    // F̂₂ = Σ cᵢ(cᵢ-1) / n(n-1)
+    let num = 0;
+    for (let i = 0; i < d; i++) num += counts[i] * (counts[i] - 1);
+    const f2 = num / (nk * (nk - 1));
+    if (f2 > 0) results.push({ k, f2, logf2: Math.log(f2), nk, d });
+  }
+
+  if (results.length < 2) {
+    document.getElementById('demo-result').innerHTML = '<span style="color:var(--red);">Need more data (at least ~500 chars for 2+ k-gram orders).</span>';
+    return;
+  }
+
+  // OLS slope
+  const ks = results.map(r => r.k);
+  const ys = results.map(r => r.logf2);
+  const mk = ks.reduce((a, b) => a + b, 0) / ks.length;
+  const my = ys.reduce((a, b) => a + b, 0) / ys.length;
+  let num = 0, den = 0;
+  ks.forEach((k, i) => { num += (k - mk) * (ys[i] - my); den += (k - mk) ** 2; });
+  const slope = num / den;
+  const intercept = my - slope * mk;
+  const h2 = -slope / Math.LN2;
+
+  // R²
+  const yhat = ks.map(k => slope * k + intercept);
+  const ssRes = ys.reduce((s, y, i) => s + (y - yhat[i]) ** 2, 0);
+  const ssTot = ys.reduce((s, y) => s + (y - my) ** 2, 0);
+  const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 1;
+
+  let html = `<div style="margin-bottom:8px;"><strong>n</strong> = ${bytes.length} bytes → ${n} nibbles &nbsp;|&nbsp; <strong>k<sub>max</sub></strong> = ${results[results.length - 1].k}</div>`;
+  html += '<table style="width:100%;font-size:0.82rem;border-collapse:collapse;">';
+  html += '<tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">k</th><th>bins</th><th>F̂₂(k)</th><th>log F̂₂(k)</th></tr>';
+  results.forEach(r => {
+    html += `<tr><td style="padding:4px 8px;">${r.k}</td><td>${r.d}</td><td>${r.f2.toExponential(4)}</td><td>${r.logf2.toFixed(4)}</td></tr>`;
+  });
+  html += '</table>';
+  html += `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">`;
+  html += `<strong style="color:var(--accent);">h₂ = ${h2.toFixed(4)} bits/symbol</strong> &nbsp;|&nbsp; slope = ${slope.toFixed(4)} &nbsp;|&nbsp; R² = ${r2.toFixed(6)}`;
+  html += `</div>`;
+
+  document.getElementById('demo-result').innerHTML = html;
+}
+</script>
+</body>
+</html>
