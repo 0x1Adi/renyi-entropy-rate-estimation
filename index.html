@@ -712,14 +712,21 @@ drawBars();
 
 // === INTERACTIVE DEMO ===
 const examples = {
-  english: "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump.",
-  base64: "SGVsbG8gV29ybGQhIFRoaXMgaXMgYmFzZTY0IGVuY29kZWQgZGF0YS4gSXQgaGFzIGEgdmVyeSBkaXN0aW5jdGl2ZSBuaWJibGUgcGF0dGVybi4gQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=",
-  hex: "48656c6c6f20576f726c64212054686973206973206865782d656e636f6465642064617461207769746820612076657279207370656369666963206e6962626c6520706174746572",
-  random: Array.from({length: 200}, () => String.fromCharCode(Math.floor(Math.random() * 256))).join('')
+  english: "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump. The five boxing wizards jump quickly. Jackdaws love my big sphinx of quartz. Amazingly few discotheques provide jukeboxes. We promptly judged antique ivory buckles for the next prize. A wizard's job is to vex chumps quickly in fog. Watch Jeopardy and Alex Trebek's fun quiz game. Crazy Frederick bought many very exquisite opal jewels. The job requires extra pluck and zeal from every young wage earner.",
+  base64: "SGVsbG8gV29ybGQhIFRoaXMgaXMgYmFzZTY0IGVuY29kZWQgZGF0YS4gSXQgaGFzIGEgdmVyeSBkaXN0aW5jdGl2ZSBuaWJibGUgcGF0dGVybi4gQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVphYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ejAxMjM0NTY3ODkrL0FCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU2Nzg5Ky9BQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWmFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6MDEyMzQ1Njc4OSsvQUJDRA==",
+  hex: "48656c6c6f20576f726c64212054686973206973206865782d656e636f6465642064617461207769746820612076657279207370656369666963206e6962626c6520706174746572216465616462656566636166656261626530313233343536373839616263646566303132333435363738396162636465663030313132323333343435353636373738383939616162626363646465656666",
+  random: null  // generated fresh each click
 };
 
 function loadExample(name) {
-  document.getElementById('demo-text').value = examples[name];
+  if (name === 'random') {
+    // Use printable ASCII (0x21-0x7E) to avoid UTF-8 multi-byte encoding issues
+    const chars = [];
+    for (let i = 0; i < 600; i++) chars.push(String.fromCharCode(33 + Math.floor(Math.random() * 94)));
+    document.getElementById('demo-text').value = chars.join('');
+  } else {
+    document.getElementById('demo-text').value = examples[name];
+  }
   computeDemo();
 }
 
@@ -758,7 +765,17 @@ function computeDemo() {
   }
 
   if (results.length < 2) {
-    document.getElementById('demo-result').innerHTML = '<span style="color:var(--red);">Need more data (at least ~500 chars for 2+ k-gram orders).</span>';
+    if (results.length === 1) {
+      // Show single-scale H₂ even without slope
+      const r = results[0];
+      const H2 = -Math.log2(r.f2);
+      let html = `<div style="margin-bottom:8px;"><strong>n</strong> = ${bytes.length} bytes → ${n} nibbles &nbsp;|&nbsp; <strong>k<sub>max</sub></strong> = 1 (too short for multi-scale slope)</div>`;
+      html += `<div><strong style="color:var(--accent);">Single-scale H₂ = ${H2.toFixed(4)} bits</strong> &nbsp;|&nbsp; F̂₂ = ${r.f2.toExponential(4)}</div>`;
+      html += `<div style="margin-top:8px;font-size:0.82rem;color:var(--orange);">⚠ Need ≥256 bytes for multi-scale entropy <em>rate</em> (h₂). Paste more text or use the preset examples.</div>`;
+      document.getElementById('demo-result').innerHTML = html;
+    } else {
+      document.getElementById('demo-result').innerHTML = '<span style="color:var(--red);">Input too short — need at least ~50 characters.</span>';
+    }
     return;
   }
 
@@ -787,7 +804,8 @@ function computeDemo() {
   });
   html += '</table>';
   html += `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">`;
-  html += `<strong style="color:var(--accent);">h₂ = ${h2.toFixed(4)} bits/symbol</strong> &nbsp;|&nbsp; slope = ${slope.toFixed(4)} &nbsp;|&nbsp; R² = ${r2.toFixed(6)}`;
+  const r2note = results.length <= 2 ? ' <span style="color:var(--orange);font-size:0.78rem;">(trivial: only 2 points — need ≥4KB input for meaningful R²)</span>' : '';
+  html += `<strong style="color:var(--accent);">h₂ = ${h2.toFixed(4)} bits/symbol</strong> &nbsp;|&nbsp; slope = ${slope.toFixed(4)} &nbsp;|&nbsp; R² = ${r2.toFixed(6)}${r2note}`;
   html += `</div>`;
 
   document.getElementById('demo-result').innerHTML = html;
