@@ -26,7 +26,7 @@ ORCID: 0009-0004-8454-9777\\
 \maketitle
 
 \begin{abstract}
-We present a method for estimating the R\'enyi 2-entropy rate $h_2$ of stationary ergodic sources from raw byte streams. The method expands bytes to nibbles ($\alpha=16$), computes debiased collision probabilities $\hat{F}_2(k)$ at $k$-gram orders $k=1,\ldots,K$ via the falling-factorial estimator, and extracts the entropy rate from the ordinary least-squares slope of $\log \hat{F}_2(k)$ versus $k$. On synthetic Markov chains with known ground truth, the estimator achieves median error ${<}\,0.003$ at $n=50{,}000$ with $R^2 > 0.999$. On 124 DNS tunnel capture files spanning ten tool families, the R\'enyi entropy rate $h_2$ alone (ARI~$=0.720$) outperforms Shannon entropy---both single-scale ($\mathrm{ARI}=0.246$) and multi-scale slope ($\mathrm{ARI}=0.204$)---by $3.5\times$ for model-free tool classification. This advantage persists after Miller-Madow debiasing of the Shannon estimator, confirming it is intrinsic to the collision probability functional rather than an artifact of estimation bias. The $(h_2, h_3, h_4)$ multi-order fingerprint provides modest additional gain ($\mathrm{ARI}=0.747$). We additionally show that $R^2$ of the linear fit decreases monotonically with Markov order (orders 0--4), serving as a non-parametric memory depth diagnostic. The estimator runs in $O(nK)$ time with $O(\alpha^K)$ space. Code is available at \url{https://github.com/0x1Adi/renyi-entropy-rate-estimation}.
+We present a method for estimating the R\'enyi 2-entropy rate $h_2$ of stationary ergodic sources from raw byte streams. The method expands bytes to nibbles ($\alpha=16$), computes debiased collision probabilities $\hat{F}_2(k)$ at $k$-gram orders $k=1,\ldots,K$ via the falling-factorial estimator, and extracts the entropy rate from the ordinary least-squares slope of $\log \hat{F}_2(k)$ versus $k$. On synthetic Markov chains with known ground truth, the estimator achieves median error ${<}\,0.003$ at $n=50{,}000$ with $R^2 > 0.999$. On 124 DNS tunnel capture files spanning ten classes (eight tunnel tools and two benign categories), the R\'enyi entropy rate $h_2$ alone (ARI~$=0.720$) outperforms Shannon entropy---both single-scale ($\mathrm{ARI}=0.246$) and multi-scale slope ($\mathrm{ARI}=0.204$)---for model-free tool classification ($\Delta\mathrm{ARI} = 0.516$). This advantage persists after Miller-Madow debiasing of the Shannon estimator, confirming it is intrinsic to the collision probability functional rather than an artifact of estimation bias. The $(h_2, h_3, h_4)$ multi-order fingerprint provides modest additional gain ($\mathrm{ARI}=0.747$). We additionally show that $R^2$ of the linear fit decreases monotonically with Markov order (orders 0--4), serving as a non-parametric memory depth diagnostic. The estimator runs in $O(nK)$ time with $O(\alpha^K)$ space. Code is available at \url{https://github.com/0x1Adi/renyi-entropy-rate-estimation}.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -49,7 +49,7 @@ Our key finding, validated through a controlled 9-method ablation (Table~\ref{ta
 (C3)~A 9-method ablation isolating the source of improvement for DNS tunnel classification (Section~\ref{sec:classification}).
 
 \textbf{Related work.}
-Gecchele~\cite{gecchele2023} provides an unbiased single-scale $F_2$ estimator but does not consider multi-scale slopes or entropy rates. Kontoyiannis et al.~\cite{kontoyiannis2016} give finite-sample bounds for Shannon entropy rate of Markov chains. Yu et al.~\cite{yu2020} independently apply multi-order R\'enyi entropies ($q=2,3,4$) to CAN-bus intrusion detection---the closest methodological antecedent, though in a different domain with different estimation. Skorski~\cite{skorski2023} provides improved collision estimator analysis. Supervised methods such as GraphTunnel~\cite{gao2024graphtunnel} achieve ${>}98\%$ accuracy on DNS tunnel detection but require labeled training data; our method requires only reference centroids with no model fitting.
+Gecchele~\cite{gecchele2023} provides an unbiased single-scale $F_2$ estimator but does not consider multi-scale slopes or entropy rates. Kamath and Verd\'u~\cite{kamath2016} provide theoretical foundations for R\'enyi entropy rate estimation of Markov chains. Yu et al.~\cite{yu2020} independently apply multi-order R\'enyi entropies ($q=2,3,4$) to CAN-bus intrusion detection---the closest methodological antecedent, though in a different domain with different estimation. Skorski~\cite{skorski2023} provides improved collision estimator analysis. Supervised methods such as GraphTunnel~\cite{gao2024graphtunnel} achieve ${>}98\%$ accuracy on DNS tunnel detection but require labeled training data; our method requires only reference centroids with no model fitting.
 
 %=============================================
 \section{Method}
@@ -68,14 +68,14 @@ which is unbiased for the multinomial model~\cite{gecchele2023}.
 
 \subsection{Multi-Scale Entropy Rate}
 
-For a stationary ergodic source with transition matrix $P$, the Hadamard square $M_2$ has entries $(M_2)_{ij} = P_{ij}^2$. For reversible chains:
+For a stationary ergodic source with transition matrix $P$, define the Hadamard square $M_2$ by $(M_2)_{ij} = P_{ij}^2$. The $k$-gram collision probability is~\cite{skorski2019}:
 \begin{equation}
-F_2(k) = \boldsymbol{\pi}^\top M_2^k \boldsymbol{\pi} = \sum_j w_j \lambda_j^k
+F_2(k) = \mathbf{v}^\top M_2^{k-1}\, \mathbf{1}, \quad v_i = \pi_i^2
 \label{eq:spectral}
 \end{equation}
-where $\lambda_1 > |\lambda_2| \geq \cdots$ are eigenvalues of $M_2$ and $w_j > 0$. For large $k$, $\log F_2(k) \approx k \log \lambda_1 + \log w_1$, giving:
+where $\mathbf{1}$ is the all-ones vector. By Perron--Frobenius, $\log F_2(k) \approx k \log \rho(M_2) + C$ for large $k$, where $\rho(M_2)$ is the spectral radius. This gives:
 \begin{equation}
-h_2 = -\log_2 \lambda_1(M_2) = -\frac{\text{slope}}{\ln 2}
+h_2 = -\log_2 \rho(M_2) = -\frac{\text{slope}}{\ln 2}
 \label{eq:hq}
 \end{equation}
 where slope is the OLS coefficient of $\log \hat{F}_2(k)$ versus $k$.
@@ -122,7 +122,7 @@ $R^2$ decreases monotonically from order 0 to order 4 (Table~\ref{tab:r2}). Orde
 
 \subsection{Dataset}
 
-We use the GraphTunnel DNS dataset~\cite{gao2024graphtunnel}: 124 pcap files spanning 10 families (82 benign, 42 tunnel across 8 tools). DNS query names are extracted via \texttt{dpkt} and concatenated into a single byte stream per pcap.
+We use the GraphTunnel DNS dataset~\cite{gao2024graphtunnel}: 124 pcap files spanning 10 classes (82 benign across 2 categories, 42 tunnel across 8 tools). DNS query names are extracted via \texttt{dpkt} and concatenated into a single byte stream per pcap.
 
 \subsection{Ablation Design}
 
@@ -153,7 +153,7 @@ To isolate the source of classification improvement, we compare 9 methods at con
 The ablation reveals three findings:
 
 \textbf{R\'enyi beats Shannon at identical conditions.}
-At $\alpha=16$ with the same multi-scale slope method: R\'enyi $h_2 = 0.720$ vs.\ Shannon rate $= 0.204$ (plug-in) and $0.204$ (Miller-Madow debiased). The $3.5\times$ advantage is intrinsic to the collision functional, not an estimation artifact.
+At $\alpha=16$ with the same multi-scale slope method: R\'enyi $h_2 = 0.720$ vs.\ Shannon rate $= 0.204$ (plug-in) and $0.204$ (Miller-Madow debiased). The advantage ($\Delta\mathrm{ARI} = 0.516$) is intrinsic to the collision functional, not an estimation artifact.
 
 \textbf{Multi-scale slope is necessary but not sufficient.}
 The slope method improves R\'enyi dramatically (byte single $0.124 \to$ nibble slope $0.720$) but hurts Shannon (byte $0.246 \to$ nibble slope $0.204$). The slope captures sequential $k$-gram structure, but Shannon's logarithmic weighting dilutes the discriminative peaks that $F_2 = \sum p_i^2$ amplifies.
@@ -184,7 +184,7 @@ The choice of method depends on the data domain. For DNS (short strings, encodin
 %=============================================
 \section{Conclusion}
 
-The OLS slope of debiased $\log \hat{F}_q(k)$ across $k$-gram orders provides a practical $O(nK)$-time estimator for R\'enyi entropy rates, validated on synthetic Markov chains (median error ${<}0.003$). A controlled 9-method ablation confirms that the R\'enyi collision functional captures discriminative sequential structure that Shannon entropy does not, achieving $3.5\times$ the classification performance at identical alphabet, scale, and debiasing conditions on DNS tunnel data. Code is available at \url{https://github.com/0x1Adi/renyi-entropy-rate-estimation}.
+The OLS slope of debiased $\log \hat{F}_q(k)$ across $k$-gram orders provides a practical $O(nK)$-time estimator for R\'enyi entropy rates, validated on synthetic Markov chains (median error ${<}0.003$). A controlled 9-method ablation confirms that the R\'enyi collision functional captures discriminative sequential structure that Shannon entropy does not, achieving $\mathrm{ARI} = 0.720$ vs.\ Shannon's $0.204$ ($\Delta = 0.516$) at identical alphabet, scale, and debiasing conditions on DNS tunnel data. Code is available at \url{https://github.com/0x1Adi/renyi-entropy-rate-estimation}.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
